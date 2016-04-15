@@ -2,4 +2,4 @@
 
 自動描画目指します
 
-[LINK](http://tdushinwa.github.io/sazae/)
+<!-- [LINK](http://tdushinwa.github.io/sazae/) -->
