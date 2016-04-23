@@ -1,13 +1,11 @@
-var app = angular.module('myApp', []);
-
-app.controller('MainController', ['$scope', 'timeout', '$http', function($scope, $timeout, $http){
-    $timeout(function(){
-        $http.get('json/sazae.json')
-            .success(function(data){
-                $scope.items = data.list;
-            })
-            .error(function(err){
-                alert('failed');
-            });
-    });
-}]);
+httpObj = new XMLHttpRequest();
+httpObj.open("get", "data/family.json");
+httpObj.onload = function(){
+    var data = JSON.parse(this.responseText);
+    var txt = "";
+    for(var i = 0; i < data.list.length; i++){
+        txt = txt + data.list[i].id + " " + data.list[i].name + "<br />";
+    }
+    document.getElementById("result").innerHTML = txt;
+};
+httpObj.send(null);
