@@ -1,0 +1,59 @@
+{
+    "家系図":[
+        {
+            "id": 1,
+            "name": "波平",
+            "parent": null,
+            "marrige": 2,
+            "children": [3,4,5]
+        },
+
+        {
+            "id": 2,
+            "name": "フネ",
+            "parent": null,
+            "marrige": 1,
+            "children": [3,4,5]
+        },
+
+        {
+            "id": 3,
+            "name": "サザエ",
+            "parent": [1,2],
+            "marrige": "6",
+            "children": [7]
+        },
+
+        {
+            "id": 4,
+            "name": "カツオ",
+            "parent": [1,2],
+            "marrige": null,
+            "children": []
+        },
+
+        {
+            "id": 5,
+            "name": "ワカメ",
+            "parent": [1,2],
+            "marrige": null,
+            "children": []
+        },
+
+        {
+            "id": 6,
+            "name": "マスオ",
+            "parent": null,
+            "marrige": 3,
+            "children": []
+        },
+
+        {
+            "id": 7,
+            "name": "タラオ",
+            "parent": [3,6],
+            "marrige": null,
+            "children": []
+        }
+    ]
+}

@@ -1,10 +1,18 @@
 <!doctype html>
-<html lang="ja">
+<html ng-app="myApp" lang="en">
     <head>
         <meta charset="UTF-8"/>
         <title>サザエさん</title>
+        <script src="js/angular.min.js"></script>
+        <script src="js/jquery-2.2.3.min.js"></script>
+        <script src="js/sazae.js"></script>
     </head>
-    <body>
-        <p>テスト</p>
+    <body ng-controller="MainController">
+        <ul>
+            <li ng-repeat="value in items">
+                id: {{value.id}}
+                名前: {{value.name}}
+            </li>
+        </ul>
     </body>
 </html>
