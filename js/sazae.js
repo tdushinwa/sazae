@@ -35,6 +35,6 @@ var url = "data/tree.json";
 // }
 // httpObj.responseType = 'json';
 // httpObj.send(null);
-$.get(url, function(){
+$.getJSON(url, function(){
     alert("ok");
 });

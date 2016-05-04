@@ -3,7 +3,7 @@
         {
             "id": 1,
             "parent": null,
-            "marrige": 2
+            "marrige": 2,
             "children": [3,4,5]
         },
 
