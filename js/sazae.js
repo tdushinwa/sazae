@@ -2,13 +2,7 @@
 var width = window.innerWidth;
 var height = window.innerHeight;
 var scene = new THREE.Scene();
-var camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
 var renderer = new THREE.WebGLRenderer();
-
-camera.position.z = 500; // カメラ位置
-renderer.setSize(width, height); // レンダラのサイズ
-renderer.setClearColor(0xffffff, 1.0); // 背景色
-document.body.appendChild(renderer.domElement);
 
 // 四角の描画関数
 function squareMesh(x, y, z, size, color){
@@ -49,7 +43,7 @@ function textMesh(text, size, color){
 }
 
 // 描画に必要なデータを格納しておく
-function TreeNode(id, parent, marrige, children, depth, x, y, z){
+function treeNode(id, parent, marrige, children, depth, x, y, z){
     this.id = id;
     this.parent = parent;
     this.marrige = marrige;
@@ -66,7 +60,7 @@ var data = [];
 var nodeDepth = [];
 $.getJSON(url, function(temp){ //これが最後に呼ばれる
     for(var i = 0; i < temp.list.length; i++){
-        data[i] = new TreeNode(
+        data[i] = new treeNode(
             temp.list[i].id,
             temp.list[i].parent,
             temp.list[i].marrige,
@@ -83,13 +77,13 @@ $.getJSON(url, function(temp){ //これが最後に呼ばれる
     function getDepth(node, depth){
         if(node.parent != null){
             depth = Math.max(
-                getDepth(data[node.parent[0]], depth+1),
-                getDepth(data[node.parent[1]], depth+1)
+                getDepth(data[node.parent[0]], depth + 1),
+                getDepth(data[node.parent[1]], depth + 1)
             );
         }
         return depth;
     };
-    for(i = 0; i < data.length; i++){
+    for(i = 1; i < data.length; i++){
         data[i].depth = getDepth(data[i], 0);
         if(data[i].marrige != null && data[i].id > data[i].marrige){
             data[i].depth = data[data[i].marrige].depth;
@@ -104,13 +98,22 @@ $.getJSON(url, function(temp){ //これが最後に呼ばれる
         nodeDepth.push(0);
     }
     // 各深度に対するデータの量
-    for(i = 0; i < data.length; i++){
+    for(i = 1; i < data.length; i++){
         nodeDepth[data[i].depth]++;
     }
     // 最大幅を求める
     var maxWidth = Math.max.apply(null, nodeDepth);
 
+
+    // 描画関連の初期化
+    var camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    camera.position.z = 500; // カメラ位置
+    renderer.setClearColor(0xffffff, 1.0); // 背景色
+    document.body.appendChild(renderer.domElement);
+    renderer.setSize(width, height); // レンダラのサイズをここで決定
+
     // x,y,z座標を計算
+    // 親の座標を計算 -> それをもとに子の座標を計算
     for(i = 0; i <= maxDepth; i++){
         var newLine = data.filter(function(item, index){
             if(item.depth == i){
@@ -121,19 +124,51 @@ $.getJSON(url, function(temp){ //これが最後に呼ばれる
             }
         });
         for(var j = 0; j < newLine.length; j++){
-            data[newLine[j].id].x = ((width * 0.9) / maxWidth) * j - width / 2;
-            data[newLine[j].id].y = ((height * 0.9) / maxDepth) * i - height / 2;
+            data[newLine[j].id].y = -200 * i + 100 * maxDepth;
             data[newLine[j].id].z = 0;
+            // 親がいる場合はその下に描画
+            if(data[newLine[j].id].parent == null){
+                console.log(nodeDepth[i]);
+                data[newLine[j].id].x = j * (100 * maxWidth) / nodeDepth[i] - 50 * maxWidth;
+            }else{
+                data[newLine[j].id].x = (data[newLine[j].parent[0]].x + data[newLine[j].parent[1]].x) / 2;
+                // ついでに線も引く
+                lineMesh(
+                    data[newLine[j].id].x,
+                    data[newLine[j].id].y,
+                    data[newLine[j].id].z,
+                    (data[newLine[j].parent[0]].x + data[newLine[j].parent[1]].x) / 2,
+                    data[newLine[j].parent[0]].y,
+                    data[newLine[j].parent[0]].z,
+                    0x0000ff
+                );
+            }
+            // idが幼い婚姻相手とは線を結ぶ
+            if(data[newLine[j].id].marrige != null && newLine[j].id > data[newLine[j].id].marrige){
+                var marrigeId = data[newLine[j].id].marrige;
+                // console.log(newLine[j].id, marrigeId);
+                lineMesh(
+                    data[newLine[j].id].x,
+                    data[newLine[j].id].y,
+                    data[newLine[j].id].z,
+                    data[marrigeId].x,
+                    data[marrigeId].y,
+                    data[marrigeId].z,
+                    0x0000ff
+                );
+            }
         }
     }
-    // 描画
-    for(i = 0; i < data.length; i++){
-        squareMesh(data[i].x, data[i].y, data[i].z, 50, 0x000000);
+
+    for(i = 1; i < data.length; i++){
+        // console.log(data[i].id, data[i].x, data[i].y, data[i].z);
+        squareMesh(data[i].x, data[i].y, data[i].z, 50, 0xff0000);
     }
+
+    var render = function(){renderer.render(scene, camera);};
     render();
 });
 
 // フォントデータに問題有り？
 // textMesh("テスト", 30, 0xffffff);
 
-var render = function(){renderer.render(scene, camera);};
