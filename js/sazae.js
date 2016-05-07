@@ -82,7 +82,10 @@ $.getJSON(url, function(temp){ //これが最後に呼ばれる
     var maxDepth = 0; // 最大の深さを出しておく
     function getDepth(node, depth){
         if(node.parent != null){
-            depth = getDepth(data[node.parent[0]], ++depth);
+            depth = Math.max(
+                getDepth(data[node.parent[0]], depth+1),
+                getDepth(data[node.parent[1]], depth+1)
+            );
         }
         return depth;
     };
@@ -108,12 +111,25 @@ $.getJSON(url, function(temp){ //これが最後に呼ばれる
     var maxWidth = Math.max.apply(null, nodeDepth);
 
     // x,y,z座標を計算
-    for(i = 0; i < maxDepth; i++){
-        for(var j = 0; j < maxWidth; j++){
-            
+    for(i = 0; i <= maxDepth; i++){
+        var newLine = data.filter(function(item, index){
+            if(item.depth == i){
+                return true;
+            }
+            else{
+                return false;
+            }
+        });
+        for(var j = 0; j < newLine.length; j++){
+            data[newLine[j].id].x = ((width * 0.9) / maxWidth) * j - width / 2;
+            data[newLine[j].id].y = ((height * 0.9) / maxDepth) * i - height / 2;
+            data[newLine[j].id].z = 0;
         }
     }
     // 描画
+    for(i = 0; i < data.length; i++){
+        squareMesh(data[i].x, data[i].y, data[i].z, 50, 0x000000);
+    }
     render();
 });
 
