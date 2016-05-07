@@ -29,28 +29,28 @@
             "id": 4,
             "parent": [1,2],
             "marrige": null,
-            "children": []
+            "children": null
         },
 
         {
             "id": 5,
             "parent": [1,2],
             "marrige": null,
-            "children": []
+            "children": null
         },
 
         {
             "id": 6,
             "parent": null,
             "marrige": 3,
-            "children": []
+            "children": null
         },
 
         {
             "id": 7,
             "parent": [3,6],
             "marrige": null,
-            "children": []
+            "children": null
         }
     ]
 }
