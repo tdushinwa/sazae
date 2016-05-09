@@ -3,6 +3,12 @@ var width = window.innerWidth;
 var height = window.innerHeight;
 var scene = new THREE.Scene();
 var renderer = new THREE.WebGLRenderer();
+var camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+camera.position.z = 500; // カメラ位置
+renderer.setClearColor(0xffffff, 1.0); // 背景色
+document.body.appendChild(renderer.domElement);
+renderer.setSize(width, height); // レンダラのサイズをここで決定
+
 
 // 四角の描画関数
 function squareMesh(x, y, z, size, color){
@@ -103,14 +109,6 @@ $.getJSON(url, function(temp){ //これが最後に呼ばれる
     }
     // 最大幅を求める
     var maxWidth = Math.max.apply(null, nodeDepth);
-
-
-    // 描画関連の初期化
-    var camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    camera.position.z = 500; // カメラ位置
-    renderer.setClearColor(0xffffff, 1.0); // 背景色
-    document.body.appendChild(renderer.domElement);
-    renderer.setSize(width, height); // レンダラのサイズをここで決定
 
     // x,y,z座標を計算
     // 親の座標を計算 -> それをもとに子の座標を計算
