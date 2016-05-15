@@ -164,8 +164,7 @@ $.getJSON(url, function(tree){ //これが最後に呼ばれる
     for(var j = 0; j < newLine.length; j++){
         nextOrder.push(newLine[j].id);  // 初期化(0層目)
     }
-    var centerPointX = 0;  // 現在の層の一つ下の層の描画中心点のx座標
-
+    var centerPointX = 0;
     // 1層ずつ描画していく
     for(i = 0; i <= maxDepth; i++){
 
@@ -177,7 +176,7 @@ $.getJSON(url, function(tree){ //これが最後に呼ばれる
             var parentId = data[current].parent;
             data[current].y = -200 * i + 100 * maxDepth;
             data[current].z = 100;
-            data[current].x = j * (100 * maxWidth) / nodeDepth[i] - 50 * maxWidth;
+            data[current].x = j * (100 * maxWidth) / nodeDepth[i] - 50 * maxWidth + centerPointX;
             // 親がいるときの処理(線を結ぶ)
             if(parentId != null){
                 lineMesh(
@@ -189,6 +188,7 @@ $.getJSON(url, function(tree){ //これが最後に呼ばれる
                     data[parentId[0]].z,
                     0x0000ff
                 );
+                centerPointX = (data[parentId[0]].x + data[parentId[1]].x) / 2;
             }
 
             // 婚姻関係がある場合の処理
@@ -209,31 +209,8 @@ $.getJSON(url, function(tree){ //これが最後に呼ばれる
                         nextOrder.push(data[data[current].children[k]].marrige);
                     }
                 }
-                centerPointX = (data[current].x + data[marrigeId].x) / 2;
             }
             nextOrder.shift();
-        }
-
-        for(j = 0; j < newLine.length; j++){
-            if (data[current].id < marrigeId){
-                if(data[current].parent == null){ // 親がいないとき
-                    console.log();
-                }else{
-                    // 親がいる場合はその下に子供を書く
-                    var childTemp = data[data[current].parent[0]].children;
-                    centerPointX = (data[newLine[j].parent[0]].x + data[newLine[j].parent[1]].x) / 2;
-                    // ついでに線も引く
-                    lineMesh(
-                        data[current].x,
-                        data[current].y,
-                        data[current].z,
-                        (data[newLine[j].parent[0]].x + data[newLine[j].parent[1]].x) / 2,
-                        data[newLine[j].parent[0]].y,
-                        data[newLine[j].parent[0]].z,
-                        0x0000ff
-                    );
-                }
-            }
         }
     }
 
