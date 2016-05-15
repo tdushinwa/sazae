@@ -47,7 +47,7 @@ function onWindowResize(){
 
 // 四角の描画関数
 function squareMesh(x, y, z, size, color){
-    var geometry = new THREE.BoxGeometry(size, size, size, 1, 1, 1);
+    var geometry = new THREE.PlaneGeometry(size, size);
     var material = new THREE.MeshLambertMaterial({color: color});
     var mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
