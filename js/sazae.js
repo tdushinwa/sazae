@@ -3,6 +3,7 @@ var width = window.innerWidth;
 var height = window.innerHeight;
 var canvasFrame, scene, renderer;
 var camera, trackball;
+var directionalLight;
 
 // threejsの初期化
 function init(){
@@ -17,7 +18,7 @@ function init(){
 
 // カメラの初期化
 function initCamera(){
-    camera = new THREE.PerspectiveCamera(100, width / height, 0.1, 5000);
+    camera = new THREE.PerspectiveCamera(100, width / height, 0.05, 5000);
     camera.position.set(0, 0, 500);
     camera.lookAt({x: 0, y: 0, z: 0});
 
@@ -26,9 +27,15 @@ function initCamera(){
     trackball.noZoome = false;
     trackball.zoomSpeed = 0.1;
     trackball.noPan = false;
-    trackball.panSpeed = 1.0;
+    trackball.panSpeed = 0.3;
     trackball.staticMoving = false;
-    trackball.dynamicDampingFactor = 0.3;
+    trackball.dynamicDampingFactor = 0.2;
+}
+
+function initLight(){
+    directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    directionalLight.position.set(-100, 100, 200);
+    scene.add(directionalLight);
 }
 
 function onWindowResize(){
@@ -41,7 +48,7 @@ function onWindowResize(){
 // 四角の描画関数
 function squareMesh(x, y, z, size, color){
     var geometry = new THREE.BoxGeometry(size, size, size, 1, 1, 1);
-    var material = new THREE.MeshBasicMaterial({color: color});
+    var material = new THREE.MeshLambertMaterial({color: color});
     var mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
     scene.add(mesh);
@@ -108,6 +115,7 @@ $.getJSON(url, function(tree){ //これが最後に呼ばれる
 
     init();
     initCamera();
+    initLight();
 
     // 各ノードの深度を記憶する(リファクタリングしたい)
     var maxDepth = 0; // 最大の深さを出しておく
@@ -131,7 +139,6 @@ $.getJSON(url, function(tree){ //これが最後に呼ばれる
         if(maxDepth < data[i].depth){
             maxDepth = data[i].depth;
         }
-        console.log(data[i].id, data[i].depth);
     }
     // 空の配列作る
     for(i = 0; i <= maxDepth; i++){
@@ -145,43 +152,48 @@ $.getJSON(url, function(tree){ //これが最後に呼ばれる
     var maxWidth = Math.max.apply(null, nodeDepth);
 
     // x,y,z座標を計算
-    // 親の座標を計算 -> それをもとに子の座標を計算
+    var newLine = data.filter(function(item, index){
+        if(item.depth == 0){
+            return true;
+        }
+        else{
+            return false;
+        }
+    });
+    var nextOrder = []; // 現在の層の一つ下の層の順序を格納
+    for(var j = 0; j < newLine.length; j++){
+        nextOrder.push(newLine[j].id);  // 初期化(0層目)
+    }
+    var centerPointX = 0;  // 現在の層の一つ下の層の描画中心点のx座標
+
+    // 1層ずつ描画していく
     for(i = 0; i <= maxDepth; i++){
-        var newLine = data.filter(function(item, index){
-            if(item.depth == i){
-                return true;
-            }
-            else{
-                return false;
-            }
-        });
-        for(var j = 0; j < newLine.length; j++){
-            var current = newLine[j].id;
+
+        var len = nextOrder.length;
+        for(j = 0; j < len; j++){
+            console.log(nextOrder);
+            var current = nextOrder[0];
+            var marrigeId = data[current].marrige;
+            var parentId = data[current].parent;
             data[current].y = -200 * i + 100 * maxDepth;
             data[current].z = 100;
-
-            if(data[current].parent == null){ // 親がいないとき
-                console.log(nodeDepth[i]);
-                data[current].x = j * (100 * maxWidth) / nodeDepth[i] - 50 * maxWidth;
-            }else{
-                // 親がいる場合はその下に子供を書く
-                data[current].x = (data[newLine[j].parent[0]].x + data[newLine[j].parent[1]].x) / 2;
-                // ついでに線も引く
+            data[current].x = j * (100 * maxWidth) / nodeDepth[i] - 50 * maxWidth;
+            // 親がいるときの処理(線を結ぶ)
+            if(parentId != null){
                 lineMesh(
                     data[current].x,
                     data[current].y,
                     data[current].z,
-                    (data[newLine[j].parent[0]].x + data[newLine[j].parent[1]].x) / 2,
-                    data[newLine[j].parent[0]].y,
-                    data[newLine[j].parent[0]].z,
+                    (data[parentId[0]].x + data[parentId[1]].x) / 2,
+                    data[parentId[0]].y,
+                    data[parentId[0]].z,
                     0x0000ff
                 );
             }
 
-            // idが大きい婚姻相手は隣に置いて、線を結ぶ
-            if(data[current].marrige != null && current > data[current].marrige){
-                var marrigeId = data[current].marrige;
-                // console.log(current, marrigeId);
+            // 婚姻関係がある場合の処理
+            if(data[current].children != null && current > marrigeId){
+                // 婚姻相手と線を結ぶ
                 lineMesh(
                     data[current].x,
                     data[current].y,
@@ -191,13 +203,43 @@ $.getJSON(url, function(tree){ //これが最後に呼ばれる
                     data[marrigeId].z,
                     0x0000ff
                 );
+                for(var k = 0; k < data[current].children.length; k++){
+                    nextOrder.push(data[current].children[k]);
+                    if(data[data[current].children[k]].marrige != null){
+                        nextOrder.push(data[data[current].children[k]].marrige);
+                    }
+                }
+                centerPointX = (data[current].x + data[marrigeId].x) / 2;
+            }
+            nextOrder.shift();
+        }
+
+        for(j = 0; j < newLine.length; j++){
+            if (data[current].id < marrigeId){
+                if(data[current].parent == null){ // 親がいないとき
+                    console.log();
+                }else{
+                    // 親がいる場合はその下に子供を書く
+                    var childTemp = data[data[current].parent[0]].children;
+                    centerPointX = (data[newLine[j].parent[0]].x + data[newLine[j].parent[1]].x) / 2;
+                    // ついでに線も引く
+                    lineMesh(
+                        data[current].x,
+                        data[current].y,
+                        data[current].z,
+                        (data[newLine[j].parent[0]].x + data[newLine[j].parent[1]].x) / 2,
+                        data[newLine[j].parent[0]].y,
+                        data[newLine[j].parent[0]].z,
+                        0x0000ff
+                    );
+                }
             }
         }
     }
 
     for(i = 1; i < data.length; i++){
         // console.log(data[i].id, data[i].x, data[i].y, data[i].z);
-        squareMesh(data[i].x, data[i].y, data[i].z, 50, 0xaaaa00);
+        squareMesh(data[i].x, data[i].y, data[i].z, 50, 0xaa0000);
     }
 
     var animate = function(){

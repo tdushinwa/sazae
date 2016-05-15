@@ -21,7 +21,7 @@
         {
             "id": 3,
             "parent": [1,2],
-            "marrige": "6",
+            "marrige": 6,
             "children": [7]
         },
 
@@ -43,7 +43,7 @@
             "id": 6,
             "parent": null,
             "marrige": 3,
-            "children": null
+            "children": [7]
         },
 
         {
