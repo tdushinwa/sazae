@@ -1,18 +1,46 @@
 // 描画関連の初期化
 var width = window.innerWidth;
 var height = window.innerHeight;
-var scene = new THREE.Scene();
-var renderer = new THREE.WebGLRenderer();
-var camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-camera.position.z = 500; // カメラ位置
-renderer.setClearColor(0xffffff, 1.0); // 背景色
-document.body.appendChild(renderer.domElement);
-renderer.setSize(width, height); // レンダラのサイズをここで決定
+var canvasFrame, scene, renderer;
+var camera, trackball;
+
+// threejsの初期化
+function init(){
+    canvasFrame = document.getElementById('canvas_frame');
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(width, height);
+    renderer.setClearColor(0xffffff, 1.0);
+    canvasFrame.appendChild(renderer.domElement);
+    scene = new THREE.Scene();
+    window.addEventListener('resize', onWindowResize, false);
+}
+
+// カメラの初期化
+function initCamera(){
+    camera = new THREE.PerspectiveCamera(100, width / height, 0.1, 5000);
+    camera.position.set(0, 0, 500);
+    camera.lookAt({x: 0, y: 0, z: 0});
+
+    trackball = new THREE.TrackballControls(camera);
+    trackball.noRotate = false;
+    trackball.noZoome = false;
+    trackball.zoomSpeed = 0.1;
+    trackball.noPan = false;
+    trackball.panSpeed = 1.0;
+    trackball.staticMoving = false;
+    trackball.dynamicDampingFactor = 0.3;
+}
+
+function onWindowResize(){
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height);
+}
 
 
 // 四角の描画関数
 function squareMesh(x, y, z, size, color){
-    var geometry = new THREE.PlaneGeometry(size, size);
+    var geometry = new THREE.BoxGeometry(size, size, size, 1, 1, 1);
     var material = new THREE.MeshBasicMaterial({color: color});
     var mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
@@ -64,19 +92,22 @@ function treeNode(id, parent, marrige, children, depth, x, y, z){
 var url = "data/tree.json";
 var data = [];
 var nodeDepth = [];
-$.getJSON(url, function(temp){ //これが最後に呼ばれる
-    for(var i = 0; i < temp.list.length; i++){
+$.getJSON(url, function(tree){ //これが最後に呼ばれる
+    for(var i = 0; i < tree.list.length; i++){
         data[i] = new treeNode(
-            temp.list[i].id,
-            temp.list[i].parent,
-            temp.list[i].marrige,
-            temp.list[i].children,
+            tree.list[i].id,
+            tree.list[i].parent,
+            tree.list[i].marrige,
+            tree.list[i].children,
             0,
             0.0,
             0.0,
             0.0
         );
     }
+
+    init();
+    initCamera();
 
     // 各ノードの深度を記憶する(リファクタリングしたい)
     var maxDepth = 0; // 最大の深さを出しておく
@@ -89,8 +120,11 @@ $.getJSON(url, function(temp){ //これが最後に呼ばれる
         }
         return depth;
     };
+
     for(i = 1; i < data.length; i++){
+        // 各ノードの深さを更新
         data[i].depth = getDepth(data[i], 0);
+        // 婚姻関係を持っていてかつ相手が自分よりIDが幼いときは深度を同じにする
         if(data[i].marrige != null && data[i].id > data[i].marrige){
             data[i].depth = data[data[i].marrige].depth;
         }
@@ -122,33 +156,36 @@ $.getJSON(url, function(temp){ //これが最後に呼ばれる
             }
         });
         for(var j = 0; j < newLine.length; j++){
-            data[newLine[j].id].y = -200 * i + 100 * maxDepth;
-            data[newLine[j].id].z = 0;
-            // 親がいる場合はその下に描画
-            if(data[newLine[j].id].parent == null){
+            var current = newLine[j].id;
+            data[current].y = -200 * i + 100 * maxDepth;
+            data[current].z = 100;
+
+            if(data[current].parent == null){ // 親がいないとき
                 console.log(nodeDepth[i]);
-                data[newLine[j].id].x = j * (100 * maxWidth) / nodeDepth[i] - 50 * maxWidth;
+                data[current].x = j * (100 * maxWidth) / nodeDepth[i] - 50 * maxWidth;
             }else{
-                data[newLine[j].id].x = (data[newLine[j].parent[0]].x + data[newLine[j].parent[1]].x) / 2;
+                // 親がいる場合はその下に子供を書く
+                data[current].x = (data[newLine[j].parent[0]].x + data[newLine[j].parent[1]].x) / 2;
                 // ついでに線も引く
                 lineMesh(
-                    data[newLine[j].id].x,
-                    data[newLine[j].id].y,
-                    data[newLine[j].id].z,
+                    data[current].x,
+                    data[current].y,
+                    data[current].z,
                     (data[newLine[j].parent[0]].x + data[newLine[j].parent[1]].x) / 2,
                     data[newLine[j].parent[0]].y,
                     data[newLine[j].parent[0]].z,
                     0x0000ff
                 );
             }
-            // idが幼い婚姻相手とは線を結ぶ
-            if(data[newLine[j].id].marrige != null && newLine[j].id > data[newLine[j].id].marrige){
-                var marrigeId = data[newLine[j].id].marrige;
-                // console.log(newLine[j].id, marrigeId);
+
+            // idが大きい婚姻相手は隣に置いて、線を結ぶ
+            if(data[current].marrige != null && current > data[current].marrige){
+                var marrigeId = data[current].marrige;
+                // console.log(current, marrigeId);
                 lineMesh(
-                    data[newLine[j].id].x,
-                    data[newLine[j].id].y,
-                    data[newLine[j].id].z,
+                    data[current].x,
+                    data[current].y,
+                    data[current].z,
                     data[marrigeId].x,
                     data[marrigeId].y,
                     data[marrigeId].z,
@@ -160,13 +197,13 @@ $.getJSON(url, function(temp){ //これが最後に呼ばれる
 
     for(i = 1; i < data.length; i++){
         // console.log(data[i].id, data[i].x, data[i].y, data[i].z);
-        squareMesh(data[i].x, data[i].y, data[i].z, 50, 0xff0000);
+        squareMesh(data[i].x, data[i].y, data[i].z, 50, 0xaaaa00);
     }
 
-    var render = function(){renderer.render(scene, camera);};
-    render();
+    var animate = function(){
+        requestAnimationFrame(animate);
+        trackball.update();
+        renderer.render(scene, camera);
+    };
+    animate();
 });
-
-// フォントデータに問題有り？
-// textMesh("テスト", 30, 0xffffff);
-
